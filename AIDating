@@ -1,1 +1,49 @@
+from flask import Flask, request, jsonify
+from firebase_admin import credentials, initialize_app, firestore, _apps
+from flask_cors import CORS
+
+import os
+import datetime
+import json
+import random
+import time
+
+from dotenv import load_dotenv
+import jwt
+import requests
+from bs4 import BeautifulSoup
+from PIL import Image
+
+# IMPORTANT: load_dotenv() MUST be called right after its import,
+# before any os.getenv() calls are made to load variables.
+load_dotenv()
+
+# --- Configuration (using environment variables for security) ---
+SERVICE_ACCOUNT_KEY_PATH = os.getenv('FIREBASE_SERVICE_ACCOUNT_KEY_PATH', 'serviceAccountKey.json')
+JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'super_secret_dev_key_change_this_in_production')
+
+# --- Global Counter for Dummy Matches Made ---
+matches_made_counter = 1234567
+
+# --- Initialize Flask App ---
+app = Flask(__name__)
+CORS(app)
+
+# --- Firebase Initialization ---
+if not _apps.get_app():
+    try:
+        cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH)
+        initialize_app(cred)
+        print("Firebase initialized successfully.")
+    except FileNotFoundError:
+        print(f"Error: Firebase service account key not found at '{SERVICE_ACCOUNT_KEY_PATH}'")
+        print("Please ensure your .env file is configured correctly or the JSON file is present.")
+        exit()
+    except Exception as e:
+        print(f"Error initializing Firebase: {e}")
+        exit()
+else:
+    print("Firebase app already initialized.")
+
+db = firestore.client()
 
