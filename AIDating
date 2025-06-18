@@ -1,1 +1,333 @@
+# backend/main.py
+import os
+import json
+import random
+from dotenv import load_dotenv
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from passlib.context import CryptContext
+from typing import Optional, List, Dict, Any
+from firebase_admin import credentials, initialize_app, auth, firestore
+
+# Import models from models.py (ensure models.py is created as specified below)
+from models import UserRegister, UserLogin, Token, TokenData, UserProfile, UserProfileUpdate, Questionnaire, Match
+
+load_dotenv()
+
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
+SERVICE_ACCOUNT_KEY_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+if not SERVICE_ACCOUNT_KEY_PATH or not os.path.exists(SERVICE_ACCOUNT_KEY_PATH):
+    raise FileNotFoundError(
+        f"Firebase service account key file not found at: {SERVICE_ACCOUNT_KEY_PATH}. "
+        "Please ensure your `backend/.env` is correct and `serviceAccountKey.json` exists."
+    )
+
+try:
+    cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH)
+    initialize_app(cred, {'projectId': FIREBASE_PROJECT_ID})
+    db = firestore.client()
+except Exception as e:
+    raise RuntimeError(f"FATAL: Failed to initialize Firebase Admin SDK: {e}")
+
+app = FastAPI(
+    title="Dating App Backend (Beta - Clean)",
+    description="Backend with FastAPI and Firebase for authentication, profiles, and matchmaking.",
+    version="0.1.0",
+)
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# --- Dummy Data for Demonstration (for initial Firestore population) ---
+PREDEFINED_DUMMY_PROFILES = [
+    {
+        "username": "Alice_Dater", "email": "alice@example.com", "password": "password123",
+        "age": 28, "gender": "Female", "seeking_gender": "Male",
+        "hobbies": ["Reading", "Hiking", "Cooking", "Photography", "Music"],
+        "bio": "Adventure seeker and book lover, always looking for new trails.",
+        "education_level": "Bachelor", "height_cm": 165, "pronouns": "she/her"
+    },
+    {
+        "username": "Bob_Matcher", "email": "bob@example.com", "password": "password123",
+        "age": 30, "gender": "Male", "seeking_gender": "Female",
+        "hobbies": ["Gaming", "Coding", "Movies", "Sports", "Traveling"],
+        "bio": "Tech enthusiast looking for fun conversations and travel buddies.",
+        "education_level": "Master", "height_cm": 180, "pronouns": "he/him"
+    },
+    {
+        "username": "Charlie_Flirt", "email": "charlie@example.com", "password": "password123",
+        "age": 25, "gender": "Male", "seeking_gender": "Male",
+        "hobbies": ["Photography", "Traveling", "Sports", "Music", "Cooking"],
+        "bio": "Passionate photographer, always up for new experiences and good food.",
+        "education_level": "HighSchool", "height_cm": 175, "pronouns": "he/him"
+    },
+    {
+        "username": "Diana_Dreamer", "email": "diana@example.com", "password": "password123",
+        "age": 27, "gender": "Female", "seeking_gender": "Female",
+        "hobbies": ["Art", "Yoga", "Music", "Reading", "Gardening"],
+        "bio": "Creative soul with a love for wellness and harmonious living.",
+        "education_level": "PhD", "height_cm": 170, "pronouns": "she/her"
+    },
+    {
+        "username": "Eve_Explorer", "email": "eve@example.com", "password": "password123",
+        "age": 32, "gender": "Female", "seeking_gender": "Male",
+        "hobbies": ["Hiking", "Traveling", "Photography", "Art", "Sports"],
+        "bio": "Loves exploring new places and finding beauty in the everyday.",
+        "education_level": "Bachelor", "height_cm": 168, "pronouns": "she/her"
+    },
+    {
+        "username": "Frank_Fun", "email": "frank@example.com", "password": "password123",
+        "age": 29, "gender": "Male", "seeking_gender": "Female",
+        "hobbies": ["Cooking", "Movies", "Gaming", "Music", "Sports"],
+        "bio": "Easygoing guy who enjoys a good laugh and trying new recipes.",
+        "education_level": "Bachelor", "height_cm": 178, "pronouns": "he/him"
+    }
+]
+
+async def create_dummy_users_and_profiles_on_startup():
+    """Ensures predefined dummy users and their profiles exist in Firebase."""
+    print("Startup: Checking/creating dummy users and profiles...")
+    users_collection_ref = db.collection('user_profiles')
+
+    for profile_data_template in PREDEFINED_DUMMY_PROFILES:
+        try:
+            user_in_auth = None
+            try:
+                user_in_auth = auth.get_user_by_email(profile_data_template["email"])
+            except auth.UserNotFoundError:
+                pass
+
+            uid = user_in_auth.uid if user_in_auth else None
+
+            if not uid:
+                new_firebase_user = auth.create_user(
+                    email=profile_data_template["email"],
+                    password=profile_data_template["password"],
+                    display_name=profile_data_template["username"]
+                )
+                uid = new_firebase_user.uid
+
+            profile_doc_ref = users_collection_ref.document(uid)
+            profile_doc = await profile_doc_ref.get()
+
+            if not profile_doc.exists:
+                profile_to_save = profile_data_template.copy()
+                profile_to_save['uid'] = uid
+                profile_to_save.pop('password', None)
+                profile_to_save['profile_status'] = "complete" # Mark as complete for dummy users
+                await profile_doc_ref.set(profile_to_save)
+        except Exception as e:
+            print(f"Error during dummy user setup for {profile_data_template['email']}: {e}")
+
+@app.on_event("startup")
+async def on_startup():
+    await create_dummy_users_and_profiles_on_startup()
+
+# --- Dependency for current user UID (authenticates requests) ---
+async def get_current_user_uid(id_token: str = Depends(oauth2_scheme)):
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        uid = decoded_token['uid']
+        return uid
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid authentication credentials: {e}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+# --- API Routes (Authentication) ---
+
+@app.get("/")
+async def read_root():
+    return {"message": "Dating App Backend is running! (Beta Clean)"}
+
+@app.post("/register", response_model=Token)
+async def register_user(user_data: UserRegister):
+    try:
+        user = auth.create_user(
+            email=user_data.email,
+            password=user_data.password,
+            display_name=user_data.username
+        )
+        initial_profile = {
+            "uid": user.uid,
+            "username": user_data.username,
+            "email": user.email,
+            "profile_status": "incomplete",
+            "date_decline_count": 0, # Initialize decline count
+            "last_proposal_time": None # For penalty logic
+        }
+        await db.collection('user_profiles').document(user.uid).set(initial_profile)
+        return Token(access_token="backend_placeholder_jwt", token_type="bearer")
+    except auth.EmailAlreadyExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Email already registered."
+        )
+    except Exception as e:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to register user: {e}")
+
+@app.post("/login", response_model=Token)
+async def login_user(user_data: UserLogin):
+    try:
+        auth.get_user_by_email(user_data.email) # Check if user exists in Auth
+        return Token(access_token="backend_dummy_jwt_for_login", token_type="bearer")
+    except auth.UserNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password."
+        )
+    except Exception as e:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Login failed: {e}")
+
+# --- API Routes (User Profile & Questionnaire) ---
+
+@app.get("/users/me/profile", response_model=UserProfile)
+async def get_current_user_profile(uid: str = Depends(get_current_user_uid)):
+    profile_doc = await db.collection('user_profiles').document(uid).get()
+    if not profile_doc.exists:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User profile not found. Please complete your questionnaire.")
+    return UserProfile(**profile_doc.to_dict())
+
+@app.put("/users/me/profile", response_model=UserProfile)
+async def update_user_profile(profile_update: UserProfileUpdate, uid: str = Depends(get_current_user_uid)):
+    user_profile_ref = db.collection('user_profiles').document(uid)
+    current_profile_doc = await user_profile_ref.get()
+    current_profile_data = current_profile_doc.to_dict() if current_profile_doc.exists else {}
+
+    updated_data = profile_update.dict(exclude_unset=True)
+    current_profile_data.update(updated_data)
+
+    # Automatically set profile_status to complete if basic fields are filled
+    if all(field in current_profile_data and current_profile_data[field] is not None
+           for field in ["age", "gender", "seeking_gender", "hobbies", "bio", "height_cm", "pronouns"]):
+        current_profile_data["profile_status"] = "complete"
+    else:
+        current_profile_data["profile_status"] = "incomplete"
+
+    await user_profile_ref.set(current_profile_data)
+    return UserProfile(**current_profile_data)
+
+@app.post("/users/me/questionnaire", response_model=UserProfile)
+async def submit_questionnaire_api(questionnaire_data: Questionnaire, uid: str = Depends(get_current_user_uid)):
+    user_profile_ref = db.collection('user_profiles').document(uid)
+    current_profile_doc = await user_profile_ref.get()
+    current_profile_data = current_profile_doc.to_dict() if current_profile_doc.exists else {}
+
+    current_profile_data.update(questionnaire_data.dict())
+
+    # Update status to complete if all critical fields are now present
+    if all(field in current_profile_data and current_profile_data[field] is not None
+           for field in ["age", "gender", "seeking_gender", "hobbies", "bio", "height_cm", "pronouns"]):
+        current_profile_data["profile_status"] = "complete"
+    else:
+        current_profile_data["profile_status"] = "incomplete"
+
+    await user_profile_ref.set(current_profile_data)
+    return UserProfile(**current_profile_data)
+
+# --- API Routes (Matching & Date Opportunity) ---
+
+@app.get("/matches", response_model=List[Match])
+async def get_matches(uid: str = Depends(get_current_user_uid)):
+    current_user_profile_doc = await db.collection('user_profiles').document(uid).get()
+    if not current_user_profile_doc.exists or current_user_profile_doc.to_dict().get("profile_status") != "complete":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Profile incomplete. Please fill out questionnaire.")
+
+    current_user_profile = UserProfile(**current_user_profile_doc.to_dict())
+    
+    # Fetch all profiles
+    all_profiles_docs = await db.collection('user_profiles').where("profile_status", "==", "complete").get()
+    potential_matches = []
+
+    for doc in all_profiles_docs:
+        if doc.id == uid: continue
+        
+        other_user_profile = UserProfile(**doc.to_dict())
+
+        # Basic Matchmaking Logic:
+        # 1. Gender preference
+        # 2. Age within 5 years
+        # 3. Min 1 common hobby
+        # 4. Exclude users who have declined this user too many times recently (simplified)
+
+        match_score = 0
+        if current_user_profile.seeking_gender and other_user_profile.gender:
+            if current_user_profile.seeking_gender.name == other_user_profile.gender.name:
+                match_score += 1 # Gender match
+
+        if current_user_profile.age and other_user_profile.age:
+            if abs(current_user_profile.age - other_user_profile.age) <= 5:
+                match_score += 1 # Age proximity
+
+        common_hobbies_list = []
+        if current_user_profile.hobbies and other_user_profile.hobbies:
+            common_hobbies_list = list(set(current_user_profile.hobbies) & set(other_user_profile.hobbies))
+            if len(common_hobbies_list) > 0:
+                match_score += 1 # Has common hobbies
+
+        if match_score >= 2: # Simple threshold for a "match"
+            potential_matches.append(Match(
+                uid=other_user_profile.uid,
+                username=other_user_profile.username,
+                age=other_user_profile.age or 0,
+                gender=other_user_profile.gender.name if other_user_profile.gender else "Unknown",
+                bio=other_user_profile.bio,
+                common_hobbies=common_hobbies_list
+            ))
+    
+    # Sort by match score (descending) then shuffle the top ones
+    potential_matches.sort(key=lambda m: m.common_hobbies, reverse=True) # Simple sort
+    random.shuffle(potential_matches)
+    
+    return potential_matches[:5] # Return top 5 matches (randomized after initial sort)
+
+@app.post("/matches/{match_uid}/decline")
+async def decline_match(match_uid: str, uid: str = Depends(get_current_user_uid)):
+    # In a real app, you'd record this decline in a `user_declines` subcollection
+    # or a dedicated system, and apply penalty logic.
+    user_profile_ref = db.collection('user_profiles').document(uid)
+    user_profile_doc = await user_profile_ref.get()
+
+    if not user_profile_doc.exists:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Your profile does not exist.")
+
+    current_decline_count = user_profile_doc.to_dict().get("date_decline_count", 0)
+    current_decline_count += 1
+
+    # Simple penalty logic: 3 declines in a row (simplified as total count)
+    if current_decline_count >= 3:
+        # Penalize: user cannot get new matches for a period (e.g., 24 hours)
+        # Or you might temporarily disable matching for them.
+        # For demo, just reset count and log.
+        user_profile_ref.update({"date_decline_count": 0, "matching_disabled_until": firestore.SERVER_TIMESTAMP})
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You have declined too many dates. Matching disabled temporarily.")
+    else:
+        await user_profile_ref.update({"date_decline_count": current_decline_count})
+
+    return {"message": f"Match {match_uid} declined. Decline count: {current_decline_count}"}
+
+# --- API Routes (Availability and Date Opportunity) ---
+# Placeholder for these features as they are more complex.
+
+@app.post("/users/me/availability")
+async def set_availability(availability_data: Dict[str, Any], uid: str = Depends(get_current_user_uid)):
+    # Example: availability_data could be {"days": ["Monday", "Wednesday"], "time_slots": ["evening"]}
+    user_profile_ref = db.collection('user_profiles').document(uid)
+    await user_profile_ref.update({"availability": availability_data})
+    return {"message": "Availability updated successfully"}
+
+@app.get("/date-proposals", response_model=List[Dict[str, Any]])
+async def get_date_proposals(uid: str = Depends(get_current_user_uid)):
+    # In a real app, this would involve backend logic to
+    # 1. Check user's availability and location.
+    # 2. Find mutual matches.
+    # 3. Suggest actual date opportunities (e.g., nearby coffee shops, events).
+    # This is a very simplified placeholder.
+    proposals = [
+        {"partner_username": "Match_1", "location": "Local Cafe X", "time": "Tonight 7 PM"},
+        {"partner_username": "Match_2", "location": "Park Y", "time": "Tomorrow 3 PM"},
+    ]
+    return proposals
+
 
