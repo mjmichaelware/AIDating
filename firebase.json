@@ -1,0 +1,6 @@
+
+  "firestore": {
+    "rules": "firestore.rules", // Points to your Firestore rules file
+    "indexes": "firestore.indexes.json" // Optional: for custom Firestore indexes
+  },
+  // ... other Firebase services
