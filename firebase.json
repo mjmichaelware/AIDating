@@ -9,7 +9,7 @@
     "rewrites": [
       {
         "source": "/api/myfunction",  // Custom URL path for your function
-        "function": "my_http_function" // Name of your Python function
+        "function": "my_http_function" // Name of your Python function from main.py
       },
       {
         "source": "**",               
