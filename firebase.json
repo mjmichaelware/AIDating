@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "my_flutter_app/web",
+    "public": "web/build",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -9,15 +9,24 @@
     "rewrites": [
       {
         "source": "/api/**",
-        "run": {
-          "serviceId": "YOUR_CLOUD_RUN_SERVICE_NAME",
-          "region": "United States"
-        }
+        "function": "helloWorld"
       },
       {
         "source": "**",
         "destination": "/index.html"
       }
     ]
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "python312"
+  },
+  "emulators": {
+    "dataconnect": {
+      "dataDir": "dataconnect/.dataconnect/pgliteData"
+    }
+  },
+  "dataconnect": {
+    "source": "dataconnect"
   }
 }

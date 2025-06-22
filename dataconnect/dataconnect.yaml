@@ -1,0 +1,12 @@
+specVersion: "v1"
+serviceId: "AIDating"
+location: "me-west1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "fdcdb"
+      cloudSql:
+        instanceId: "aidating-fdc"
+      # schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]
