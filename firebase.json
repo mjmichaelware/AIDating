@@ -1,24 +1,20 @@
 {
-  "hosting": {
-    "public": "web/build", // <-- Hosting points to Flutter's build output
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/api/myfunction",  // Custom URL path for your function
-        "function": "my_http_function" // Name of your Python function from main.py
+      "hosting": {
+        "public": "build/web",
+        "ignore": [
+          "firebase.json",
+          "**/.*",
+          "**/node_modules/**"
+        ],
+        "rewrites": [
+          {
+            "source": "**",
+            "destination": "/index.html"
+          }
+        ]
       },
-      {
-        "source": "**",               
-        "destination": "/index.html"
-      }
-    ]
-  },
-  "functions": {
-    "source": "python_functions", 
-    "runtime": "python312"
-  }
-}
+      "functions": {
+        "source": "functions",
+        "runtime": "nodejs18"
+      },
+      

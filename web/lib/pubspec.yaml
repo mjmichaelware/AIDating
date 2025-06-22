@@ -1,6 +1,6 @@
 # This is the main configuration file for your Flutter project.
 # It defines project metadata, dependencies, assets, and more.
-# This file MUST be at the root of your Flutter project directory.
+# This file MUST be at the root of your Flutter project directory (e.g., /workspaces/AIDating/pubspec.yaml).
 
 name: blind_ai_dating # Your application's package name. Must be lowercase, no spaces or hyphens initially.
 description: A blind dating app powered by AI for voice-based interactions.
@@ -35,14 +35,11 @@ flutter:
 
   # To add assets to your application, add an assets section like this:
   # These paths are relative to your project's root folder (where this pubspec.yaml is).
+  # Make sure these folders actually exist at the same level as pubspec.yaml.
   assets:
-    - assets/images/
-    - assets/icons/
-    - assets/audio/ # Example for audio files if your app uses them
-
-  # Example of how to add a specific file (less common than directories)
-  # assets:
-  #   - assets/data/config.json
+    - assets/images/ # Example: if you create this folder at /workspaces/AIDating/assets/images
+    - assets/icons/  # Example: if you create this folder at /workspaces/AIDating/assets/icons
+    - assets/audio/  # Example: if you create this folder at /workspaces/AIDating/assets/audio
 
   # An image asset can be specified here to be used as the application icon on Android and iOS.
   # This requires the 'flutter_launcher_icons' package (added in dev_dependencies).
