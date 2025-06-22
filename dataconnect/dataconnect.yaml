@@ -1,11 +1,11 @@
 specVersion: "v1"
-serviceId: "AIDating"
+serviceId: "blind-ai-dating"
 location: "me-west1"
 schema:
   source: "./schema"
   datasource:
     postgresql:
-      database: "fdcdb"
+      database: "postgres"
       cloudSql:
         instanceId: "aidating-fdc"
       # schemaValidation: "COMPATIBLE"
