@@ -1,4 +1,0 @@
-firebase-functions
-requests
-firebase-admin
-functions-framework

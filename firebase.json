@@ -1,12 +1,12 @@
 {
   "hosting": {
-    "public": "public", 
+    "public": "public",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
-    
+
     "rewrites": [
       {
         "source": "workspaces/AIDating",
@@ -15,7 +15,7 @@
     ]
   },
   "functions": {
-    "source": "workspaces/AIDating", 
+    "source": "python_functions", 
     "runtime": "python312"
   }
 }
