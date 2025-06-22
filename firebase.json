@@ -1,0 +1,23 @@
+{
+  "hosting": {
+    "public": "my_flutter_app/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "YOUR_CLOUD_RUN_SERVICE_NAME",
+          "region": "United States"
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
