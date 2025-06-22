@@ -1,3 +1,10 @@
+# First, remove any existing firebase.json to ensure a clean write.
+# This command will not error if the file doesn't exist.
+rm -f firebase.json
+
+# Now, use the 'cat << EOF' method to write the content.
+# Copy and paste everything below this line, including the first '{' and the last 'EOF'.
+cat << EOF > firebase.json
 {
   "hosting": {
     "public": "web/build",
@@ -27,6 +34,13 @@
     }
   },
   "dataconnect": {
-    "source": "dataconnect"
+    "source": "dataconnect",
+    "services": [
+      {
+        "id": "blind-ai-dating",
+        "location": "me-west1"
+      }
+    ]
   }
 }
+EOF# ... your multi-line JSON code here ...
