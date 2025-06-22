@@ -1,4 +1,0 @@
-Flask
-firebase-admin
-functions-framework==3.*
-firebase-functions
