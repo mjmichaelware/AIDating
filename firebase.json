@@ -1,39 +1,21 @@
 {
   "hosting": {
-    "public": "web/build",
+    "public": "public", 
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
+    
     "rewrites": [
       {
-        "source": "/api/**",
-        "function": "helloWorld"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
+        "source": "workspaces/AIDating",
+        "function": "functions"
       }
     ]
   },
   "functions": {
-    "source": "functions",
+    "source": "workspaces/AIDating", 
     "runtime": "python312"
-  },
-  "emulators": {
-    "dataconnect": {
-      "dataDir": "dataconnect/.dataconnect/pgliteData"
-    }
-  },
-  "dataconnect": {
-    "source": "dataconnect",
-    "services": [
-      {
-        "id": "blind-ai-dating",
-        "location": "me-west1"
-      }
-    ]
   }
 }
-
