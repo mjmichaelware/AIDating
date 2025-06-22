@@ -6,16 +6,19 @@
       "**/.*",
       "**/node_modules/**"
     ],
-
     "rewrites": [
       {
-        "source": "workspaces/AIDating",
-        "function": "functions"
+        "source": "/api/myfunction",  // <-- CHANGE THIS to your desired URL path
+        "function": "my_http_function" // <-- CHANGE THIS to your actual function name
+      },
+      {
+        "source": "**",               
+        "destination": "/index.html"  
       }
     ]
   },
   "functions": {
-    "source": "python_functions", 
+    "source": "python_functions",
     "runtime": "python312"
   }
 }
