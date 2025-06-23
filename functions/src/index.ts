@@ -1,32 +1,27 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+    // src/index.ts
+    // This file defines your Firebase Cloud Functions in TypeScript.
 
-import {setGlobalOptions} from "firebase-functions";
-import {onRequest} from "firebase-functions/https";
-import * as logger from "firebase-functions/logger";
+    import {onRequest} from "firebase-functions/https"; // Import onRequest to handle HTTP requests
+    import * as logger from "firebase-functions/logger"; // Import logger for logging
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+    // Define an HTTP-triggered function named 'helloWorld'
+    // This function will respond to HTTP GET requests.
+    export const helloWorld = onRequest((request, response) => {
+      // Use the logger to log messages to Cloud Logging
+      logger.info("Hello logs from helloWorld function!", {structuredData: true});
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10 });
+      // Send a response back to the client
+      response.send("Hello from Firebase Functions (TypeScript)! Your app is connected.");
+    });
 
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+    // You can add more functions here, for example:
+    /*
+    import {onDocumentCreated} from "firebase-functions/firestore";
+
+    export const addUserToFirestore = onDocumentCreated("users/{userId}", (event) => {
+      logger.info("New user created in Firestore!", {userId: event.params.userId});
+      // Perform actions when a new user document is created
+      // e.g., send a welcome email, update a counter, etc.
+      return null; // Return null for background functions
+    });
+    */
