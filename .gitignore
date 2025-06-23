@@ -68,3 +68,9 @@ node_modules/
 # dataconnect generated files
 .dataconnect
 node_modules
+
+# Google Cloud SDK or similar large binaries
+google-cloud-sdk/
+*.tar.gz
+*.so
+*.a
