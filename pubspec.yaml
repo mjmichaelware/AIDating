@@ -1,0 +1,61 @@
+    # This is the main configuration file for your Flutter project.
+    # It defines project metadata, dependencies, assets, and more.
+    # This file MUST be at the root of your Flutter project directory (e.g., /workspaces/AIDating/pubspec.yaml).
+
+    name: blind_ai_dating # Your application's package name. Must be lowercase, no spaces or hyphens initially.
+    description: A blind dating app powered by AI for voice-based interactions.
+
+    # The following line prevents accidental publishing to pub.dev.
+    # If you intend to publish this package, remove this line.
+    publish_to: 'none'
+
+    version: 1.0.0+1 # Your application's version number and build number.
+
+    environment:
+      sdk: '>=3.0.0 <4.0.0' # Dart SDK version compatibility. This line is crucial for the "SDK constraint" error.
+
+    dependencies:
+      flutter:
+        sdk: flutter
+      # Add other dependencies here as needed, for example:
+      # cloud_firestore: ^4.0.0 # For Firebase database interactions
+      # firebase_auth: ^4.0.0   # For Firebase authentication
+      # http: ^1.1.0             # For making HTTP requests
+      # audio_waveforms: ^1.0.0  # Example for voice-based interactions (if applicable)
+      # speech_to_text: ^6.4.1   # Example for speech recognition (if applicable)
+
+    dev_dependencies:
+      flutter_test:
+        sdk: flutter
+      flutter_lints: ^3.0.0 # Linter rules for code quality.
+      cupertino_icons: ^1.0.6 
+
+    flutter:
+      # The "uses-material-design" flag tells Flutter to include the Material Icons font.
+      uses-material-design: true
+
+      # To add assets to your application, add an assets section like this:
+      # These paths are relative to your project's root folder (where this pubspec.yaml is).
+      # Make sure these folders actually exist at the same level as pubspec.yaml.
+      assets:
+        - assets/images/ # Example: if you create this folder at /workspaces/AIDating/assets/images
+        - assets/icons/  # Example: if you create this folder at /workspaces/AIDating/assets/icons
+        - assets/audio/  # Example: if you create this folder at /workspaces/AIDating/assets/audio
+
+      # An image asset can be specified here to be used as the application icon on Android and iOS.
+      # This requires the 'flutter_launcher_icons' package (added in dev_dependencies).
+      # flutter_icons:
+      #   android: "launcher_icon"
+      #   ios: true
+      #   image_path: "assets/app_icon.png"
+
+      # To add custom fonts to your application, add a fonts section here:
+      # fonts:
+      #   - family: Inter # Name you'll use in TextStyle(fontFamily: 'Inter')
+      #     fonts:
+      #       - asset: assets/fonts/Inter-Regular.ttf
+      #       - asset: assets/fonts/Inter-Bold.ttf
+      #         weight: 700 # Optional: specify font weight
+      #       - asset: assets/fonts/Inter-Italic.ttf
+      #         style: italic # Optional: specify font style
+    
