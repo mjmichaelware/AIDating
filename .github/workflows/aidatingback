@@ -1,0 +1,30 @@
+# .github/workflows/flask-deploy-heroku.yml
+name: Deploy Flask Backend to Heroku
+
+on:
+  push:
+    branches:
+      - main # Trigger when you push to your main branch
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production # Good practice for production deployments
+      # You can set a URL for the environment after initial deployment, e.g.,
+      # url: https://your-heroku-app-name.herokuapp.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Heroku
+        uses: akhileshns/heroku-deploy@v3.12.12 # A popular action for Heroku deployment
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }} # Retrieve from GitHub Secrets
+          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }} # Retrieve from GitHub Secrets
+          heroku_email: your-heroku-account@example.com # <--- IMPORTANT: Replace with your Heroku account email
+          appdir: backend # <--- IMPORTANT: Specify the subdirectory where your Flask app lives
+          # Add a buildpack if auto-detection fails, e.g.,
+          # buildpack: heroku/python
