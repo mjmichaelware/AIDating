@@ -53,8 +53,10 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
 
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
+ flutter:
+  # ... other flutter settings ...
+  assets:
+    - _redirects # IMPORTANT: Add this line to include _redirects in your build
   # the material Icons class.
   uses-material-design: true
 
